@@ -1,0 +1,1 @@
+./evaluation/evaluation.bash solution.pyz
