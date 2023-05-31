@@ -2,17 +2,15 @@
 import numpy as np
 import pandas as pd
 from tqdm.notebook import tqdm
-import matplotlib.pyplot as plt
 from sklearn.model_selection import train_test_split
 
 # Troch
 import torch
 import torch.nn as nn
-from torch.utils.data import Dataset, DataLoader
+from torch.utils.data import DataLoader
 from torchvision import transforms as T
 import torchvision
 import torch.nn.functional as F
-from torch.autograd import Variable
 
 # Computer Vision Lib
 import albumentations as A
@@ -21,14 +19,16 @@ import albumentations as A
 import time
 import os
 
+# Personal
 from UNet import UNet
 from dataset import TrainDataset
+from utils import plot_loss, plot_score
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 # Set your dataset dir
 IMAGE_PATH = '../cnu_senior_project/dataset/dataset/LPCVC_Train/IMG/train/'
-MASK_PATH = '../cnu_senior_project/dataset/dataset/LPCVC_Train/GT/train/'
+TARGET_PATH = '../cnu_senior_project/dataset/dataset/LPCVC_Train/GT/train/'
 n_classes = 14
 model_name = 'UNet'
 
@@ -55,15 +55,15 @@ for _, _, filenames in os.walk(IMAGE_PATH):
 
 df = pd.DataFrame({'id': file_names}, index = np.arange(0, len(file_names)))
 
-x_train, x_test = train_test_split(df['id'].values, test_size=test_size, random_state=19)
-x_train, x_val = train_test_split(x_train, test_size=test_size, random_state=19)
+x_train, x_test = train_test_split(df['id'].values, test_size=test_size, random_state=42)
+x_train, x_val = train_test_split(x_train, test_size=test_size, random_state=42)
 
 
 transform_train = A.Compose([A.HorizontalFlip(), A.VerticalFlip()])
 transform_val = A.Compose([A.HorizontalFlip(), A.VerticalFlip()])
 
-train_set = TrainDataset(IMAGE_PATH, MASK_PATH, x_train, mean, std, transform_train, patch=False)
-val_set = TrainDataset(IMAGE_PATH, MASK_PATH, x_val, mean, std, transform_val, patch=False)
+train_set = TrainDataset(IMAGE_PATH, TARGET_PATH, x_train, mean, std, transform_train)
+val_set = TrainDataset(IMAGE_PATH, TARGET_PATH, x_val, mean, std, transform_val)
 
 train_loader = DataLoader(train_set, batch_size=batch_size, shuffle=True)
 val_loader = DataLoader(val_set, batch_size=batch_size, shuffle=True)
@@ -74,7 +74,7 @@ sched = torch.optim.lr_scheduler.OneCycleLR(optimizer,
                                             max_lr, epochs=epoch,
                                             steps_per_epoch=len(train_loader))
 
-def miou(pred_target, target, smooth=1e-10, n_classes=14):
+def miou(pred_target, target, smooth=1e-6, n_classes=14):
     with torch.no_grad():
         pred_target = F.softmax(pred_target, dim=1)
         pred_target = torch.argmax(pred_target, dim=1)
@@ -119,13 +119,14 @@ def fit(epochs, model,
         for idx, data in enumerate(tqdm(train_loader)):
             image_s, target_s, name = data
 
-            image = image_s.to(device); mask = target_s.to(device);
+            image = image_s.to(device)
+            target = target_s.to(device)
             # Forward
             output = model(image)
-            loss = criterion(output, mask)
+            loss = criterion(output, target)
 
             # Evaluation metrics
-            iou_score += miou(output, mask)
+            iou_score += miou(output, target)
 
             # Backward
             loss.backward()
@@ -154,25 +155,10 @@ def fit(epochs, model,
     return history
 
 history = fit(epoch, model, train_loader, criterion, optimizer, sched)
+
+# To use model to evaluation and solution process,
+# we have to save model to state_dict and serialize.
 torch.save(model.state_dict(), f'{model_name}-{epoch}.pkl')
-
-def plot_loss(history):
-    plt.plot( history['train_loss'], label='train', marker='o')
-    plt.title('Loss per epoch')
-    plt.ylabel('loss')
-    plt.xlabel('epoch')
-    plt.legend()
-    plt.savefig('plot_loss.png')
-    plt.close()
-
-def plot_score(history):
-    plt.plot(history['train_miou'], label='train_miou', marker='*')
-    plt.title('Score per epoch')
-    plt.ylabel('mean IoU')
-    plt.xlabel('epoch')
-    plt.legend()
-    plt.savefig('plot_score.png')
-    plt.close()
 
 plot_loss(history)
 plot_score(history)

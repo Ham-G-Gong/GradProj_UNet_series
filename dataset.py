@@ -1,16 +1,15 @@
-
-
 import cv2
 import torch
 import albumentations as A
 from PIL import Image
 from torchvision import transforms as T
+from torch.utils.data import Dataset
 
 class TrainDataset(Dataset):
 
-    def __init__(self, img_path, mask_path, X, mean, std, transform=None, patch=False):
+    def __init__(self, img_path, target_path, X, mean, std, transform=None, patch=False):
         self.img_path = img_path
-        self.mask_path = mask_path
+        self.target_path = target_path
         self.X = X
         self.transform = transform
         self.patches = patch
@@ -23,29 +22,29 @@ class TrainDataset(Dataset):
     def __getitem__(self, idx):
         img = cv2.imread(self.img_path + self.X[idx] + '.png')
         img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-        mask = cv2.imread(self.mask_path + self.X[idx] + '.png', cv2.IMREAD_GRAYSCALE)
+        target = cv2.imread(self.target_path + self.X[idx] + '.png', cv2.IMREAD_GRAYSCALE)
         name = self.X[idx] + '.png'
 
         if self.transform is not None:
-            augmentated = self.transform(image=img, mask=mask)
+            augmentated = self.transform(image=img, mask=target)
             # np array => PIL image
             img = augmentated['image']
-            mask = augmentated['mask']
+            target = augmentated['mask']
 
         img = Image.fromarray(img)
 
         t = T.Compose([T.ToTensor(), T.Normalize(self.mean, self.std)])
         img = t(img)
-        mask = torch.from_numpy(mask).long()
+        target = torch.from_numpy(target).long()
 
-        return img, mask, name
+        return img, target, name
 
 
 class TestDataset(Dataset):
 
-    def __init__(self, img_path, mask_path, X, transform=None):
+    def __init__(self, img_path, target_path, X, transform=None):
         self.img_path = img_path
-        self.mask_path = mask_path
+        self.target_path = target_path
         self.X = X
         self.transform = transform
 
@@ -55,16 +54,15 @@ class TestDataset(Dataset):
     def __getitem__(self, idx):
         img = cv2.imread(self.img_path + self.X[idx] + '.png')
         img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-        mask = cv2.imread(self.mask_path + self.X[idx] + '.png', cv2.IMREAD_GRAYSCALE)
+        target = cv2.imread(self.target_path + self.X[idx] + '.png', cv2.IMREAD_GRAYSCALE)
 
         if self.transform is not None:
-            aug = self.transform(image=img, mask=mask)
-            img = Image.fromarray(aug['image'])
-            mask = aug['mask']
+            aug = self.transform(image=img, mask=target)
+            img = aug['image']
+            target = aug['mask']
 
-        if self.transform is None:
-            img = Image.fromarray(img)
+        img = Image.fromarray(img)
 
-        mask = torch.from_numpy(mask).long()
+        target = torch.from_numpy(target).long()
 
-        return img, mask
+        return img, target

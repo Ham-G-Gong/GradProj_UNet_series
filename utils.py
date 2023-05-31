@@ -1,4 +1,5 @@
 import numpy as np
+import matplotlib.pyplot as plt
 
 def color_mapping(image):
     color_map = np.array([
@@ -20,3 +21,22 @@ def color_mapping(image):
 
     # 색으로 변환
     return color_map[image]
+
+# 정확도, loss 출력
+def plot_loss(history):
+    plt.plot( history['train_loss'], label='train', marker='o')
+    plt.title('Loss per epoch')
+    plt.ylabel('loss')
+    plt.xlabel('epoch')
+    plt.legend()
+    plt.savefig('plot_loss.png')
+    plt.close()
+
+def plot_score(history):
+    plt.plot(history['train_miou'], label='train_miou', marker='*')
+    plt.title('Score per epoch')
+    plt.ylabel('mean IoU')
+    plt.xlabel('epoch')
+    plt.legend()
+    plt.savefig('plot_score.png')
+    plt.close()
