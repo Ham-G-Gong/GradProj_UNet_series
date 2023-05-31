@@ -52,6 +52,7 @@
 - 1021개의 training set
 - 재난 이미지: 512x512x3
 - GT 이미지: 512x512x3
+
     ![dataset-label](./figure/dataset-label.png)
 
 
