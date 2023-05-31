@@ -26,6 +26,7 @@ from dataset import TrainDataset
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
+# Set your dataset dir
 IMAGE_PATH = '../cnu_senior_project/dataset/dataset/LPCVC_Train/IMG/train/'
 MASK_PATH = '../cnu_senior_project/dataset/dataset/LPCVC_Train/GT/train/'
 n_classes = 14
@@ -73,17 +74,17 @@ sched = torch.optim.lr_scheduler.OneCycleLR(optimizer,
                                             max_lr, epochs=epoch,
                                             steps_per_epoch=len(train_loader))
 
-def mIoU(pred_mask, mask, smooth=1e-10, n_classes=14):
+def miou(pred_target, target, smooth=1e-10, n_classes=14):
     with torch.no_grad():
-        pred_mask = F.softmax(pred_mask, dim=1)
-        pred_mask = torch.argmax(pred_mask, dim=1)
-        pred_mask = pred_mask.contiguous().view(-1)
-        mask = mask.contiguous().view(-1)
+        pred_target = F.softmax(pred_target, dim=1)
+        pred_target = torch.argmax(pred_target, dim=1)
+        pred_target = pred_target.contiguous().view(-1)
+        target = target.contiguous().view(-1)
 
         iou_per_class = []
-        for clas in range(0, n_classes):
-            true_class = pred_mask == clas
-            true_label = mask == clas
+        for label in range(0, n_classes):
+            true_class = pred_target == label
+            true_label = target == label
 
             if true_label.long().sum().item() == 0:
                 iou_per_class.append(np.nan)
@@ -124,7 +125,7 @@ def fit(epochs, model,
             loss = criterion(output, mask)
 
             # Evaluation metrics
-            iou_score += mIoU(output, mask)
+            iou_score += miou(output, mask)
 
             # Backward
             loss.backward()
@@ -145,7 +146,7 @@ def fit(epochs, model,
             train_iou.append(iou_score/len(train_loader))
             print("Epoch:{}/{}..".format(e+1, epochs),
                   "Train Loss: {:.3f}..".format(running_loss/len(train_loader)),
-                  "Train mIoU:{:.3f}..".format(iou_score/len(train_loader)),
+                  "Train miou:{:.3f}..".format(iou_score/len(train_loader)),
                   "Time: {:.2f}m".format((time.time()-start_time)/60))
 
     history = {'train_loss' : train_losses, 'train_miou' :train_iou, 'lrs': lrs}
@@ -156,7 +157,6 @@ history = fit(epoch, model, train_loader, criterion, optimizer, sched)
 torch.save(model.state_dict(), f'{model_name}-{epoch}.pkl')
 
 def plot_loss(history):
-    plt.plot(history['val_loss'], label='val', marker='o')
     plt.plot( history['train_loss'], label='train', marker='o')
     plt.title('Loss per epoch')
     plt.ylabel('loss')
@@ -166,8 +166,7 @@ def plot_loss(history):
     plt.close()
 
 def plot_score(history):
-    plt.plot(history['train_miou'], label='train_mIoU', marker='*')
-    plt.plot(history['val_miou'], label='val_mIoU',  marker='*')
+    plt.plot(history['train_miou'], label='train_miou', marker='*')
     plt.title('Score per epoch')
     plt.ylabel('mean IoU')
     plt.xlabel('epoch')

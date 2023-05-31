@@ -3,7 +3,7 @@
 - UNet 계열 모델에 대한 레포지토리입니다.
 
 
-# U-Net series
+## U-Net series
 
 ### 1) U-Net
 
@@ -22,7 +22,7 @@
 - 모델 구조
     ![Attention U-Net structure](./figure/Attention_U-Net_structure.png)
 
-# Dependencies
+## Dependencies
 - 사용한 개발 환경
 
     `Python 3.6.9` 버전을 권장합니다.
@@ -46,7 +46,7 @@
     zope.interface                4.3.2
     ```
 
-# Dataset
+## Dataset
 - 출처
     ![LPCV](./figure/lpcv.png)
 - 1021개의 training set
@@ -55,7 +55,7 @@
     ![dataset-label](./figure/dataset-label.png)
 
 
-# 실행
+## 실행
 - 스크립트 파일, 파이썬 파일에서 데이터셋 경로를 설정하여야 합니다.
 
 ### Training
@@ -79,7 +79,7 @@ sh test.sh
 
 ### solution, eavluation
 
-    [evaluation, solution_unet 폴더]
+    > [evaluation, solution_unet 폴더]
     프로젝트 팀이 참여중인 LPCV 에서 제공하는 evaluation 코드입니다. 모델 평가를 자동화하는데 사용합니다.
 
 
